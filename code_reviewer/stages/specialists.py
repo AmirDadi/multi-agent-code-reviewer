@@ -4,7 +4,7 @@ from litetoolllm import astructured_completion
 
 from code_reviewer.observability import trace_meta
 from code_reviewer.schemas import ChangeSet, Finding, FindingList, FlowMap
-from code_reviewer.tools import find_definition, find_references, git_diff, read_file
+from code_reviewer.tools import find_definition, find_references, git_diff, list_directory, read_file
 
 _CONVENTIONS = """\
 You are a code conventions reviewer.
@@ -104,7 +104,7 @@ async def _run(
             {"role": "user", "content": user},
         ],
         response_model=FindingList,
-        tools=[read_file, git_diff, find_references, find_definition],
+        tools=[read_file, list_directory, git_diff, find_references, find_definition],
         max_recursion=5,
         metadata=trace_meta(f"specialist:{dimension}", repo, branch),
     )

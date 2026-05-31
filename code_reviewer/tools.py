@@ -64,11 +64,23 @@ def list_changed_files(base: str = "main", branch: str = "HEAD") -> list[str]:
 def read_file(path: str) -> str:
     """Read a file within the repo root, capped at MAX_FILE_LINES lines."""
     full_path = _safe_path(path)
+    if full_path.is_dir():
+        return f"'{path}' is a directory. Use list_directory('{path}') to see its contents."
     lines = full_path.read_text(errors="replace").splitlines()
     if len(lines) > MAX_FILE_LINES:
         lines = lines[:MAX_FILE_LINES]
         lines.append(f"[truncated at {MAX_FILE_LINES} lines]")
     return "\n".join(lines)
+
+
+def list_directory(path: str = ".") -> str:
+    """List files and subdirectories at path within the repo root."""
+    full_path = _safe_path(path)
+    if not full_path.is_dir():
+        return f"'{path}' is not a directory. Use read_file('{path}') to read it."
+    entries = sorted(full_path.iterdir())
+    lines = [f"{'dir ' if e.is_dir() else 'file'} {e.relative_to(_repo_root)}" for e in entries]
+    return "\n".join(lines) if lines else "(empty directory)"
 
 
 def find_references(symbol: str) -> str:

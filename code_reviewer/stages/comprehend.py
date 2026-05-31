@@ -2,7 +2,7 @@ from litetoolllm import structured_completion
 
 from code_reviewer.observability import trace_meta
 from code_reviewer.schemas import ChangeSet, FlowMap
-from code_reviewer.tools import find_definition, find_references, read_file
+from code_reviewer.tools import find_definition, find_references, list_directory, read_file
 
 _SYSTEM = """\
 You build a flow model of how changed code fits into the broader codebase.
@@ -54,7 +54,7 @@ def comprehend(repo_path: str, base: str, branch: str, changeset: ChangeSet, mod
             {"role": "user", "content": user},
         ],
         response_model=FlowMap,
-        tools=[read_file, find_references, find_definition],
+        tools=[read_file, list_directory, find_references, find_definition],
         max_recursion=10,
         metadata=trace_meta("comprehend", repo_path, branch),
     )

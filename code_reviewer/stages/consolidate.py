@@ -3,7 +3,7 @@ from litetoolllm import structured_completion
 from code_reviewer.memory import finding_hash
 from code_reviewer.observability import trace_meta
 from code_reviewer.schemas import Finding, ReviewReport
-from code_reviewer.tools import find_definition, find_references, read_file
+from code_reviewer.tools import find_definition, find_references, list_directory, read_file
 
 _SYSTEM = """\
 You are the final code review consolidator.
@@ -73,7 +73,7 @@ def consolidate(
             {"role": "user", "content": f"Findings:\n{findings_text}"},
         ],
         response_model=ReviewReport,
-        tools=[read_file, find_references, find_definition],
+        tools=[read_file, list_directory, find_references, find_definition],
         max_recursion=5,
         metadata=trace_meta("consolidate", repo_path, branch),
     )
