@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "code-reviewer"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "litetoolllm @ git+https://github.com/AmirDadi/liteToolLlm.git",
+    "litellm",
+    "pydantic>=2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7",
+    "pytest-asyncio>=0.21",
+]
+
+[project.scripts]
+code-reviewer = "code_reviewer.main:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

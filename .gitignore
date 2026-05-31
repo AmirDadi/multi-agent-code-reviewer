@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+*.egg-info/
+dist/
+.pytest_cache/
+.coverage
+htmlcov/
+codebase_profile.json
+feedback_log.jsonl
+report.md
+.DS_Store
