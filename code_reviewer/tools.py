@@ -10,11 +10,17 @@ MAX_DIFF_KB = 100
 MAX_GREP_RESULTS = 50
 
 _repo_root: Path | None = None
+_branch: str | None = None
 
 
 def set_repo_root(path: str) -> None:
     global _repo_root
     _repo_root = Path(path).resolve()
+
+
+def set_branch(branch: str) -> None:
+    global _branch
+    _branch = branch
 
 
 def _safe_path(path: str) -> Path:
@@ -62,11 +68,31 @@ def list_changed_files(base: str = "main", branch: str = "HEAD") -> list[str]:
 
 
 def read_file(path: str) -> str:
-    """Read a file within the repo root, capped at MAX_FILE_LINES lines."""
+    """Read a file within the repo root, capped at MAX_FILE_LINES lines.
+
+    If the file does not exist on the current checkout (e.g. it lives only on
+    the branch being reviewed), falls back to `git show <branch>:<path>`.
+    """
     full_path = _safe_path(path)
     if full_path.is_dir():
         return f"'{path}' is a directory. Use list_directory('{path}') to see its contents."
-    lines = full_path.read_text(errors="replace").splitlines()
+
+    if full_path.exists():
+        text = full_path.read_text(errors="replace")
+    elif _branch:
+        result = subprocess.run(
+            ["git", "show", f"{_branch}:{path}"],
+            cwd=str(_repo_root),
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            return f"File not found: {path}"
+        text = result.stdout
+    else:
+        return f"File not found: {path}"
+
+    lines = text.splitlines()
     if len(lines) > MAX_FILE_LINES:
         lines = lines[:MAX_FILE_LINES]
         lines.append(f"[truncated at {MAX_FILE_LINES} lines]")

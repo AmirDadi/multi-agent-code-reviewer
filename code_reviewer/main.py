@@ -53,9 +53,30 @@ def main() -> None:
 
     setup_langfuse()
     tool_module.set_repo_root(args.repo)
+    tool_module.set_branch(args.branch)
 
+    print("\n" + "="*60)
+    print("STAGE 0 — Change Detection")
+    print("="*60)
     changeset = detect_changes(args.repo, args.base, args.branch, FAST_MODEL)
+    print(f"Files changed: {changeset.files_changed}")
+    print(f"Truncated: {changeset.truncated}")
+    print(f"Summary:\n{changeset.summary}")
+
+    print("\n" + "="*60)
+    print("STAGE 0.5 — Comprehension")
+    print("="*60)
     flowmap = comprehend(args.repo, args.base, args.branch, changeset, STRONG_MODEL)
+    print(f"Entry points: {flowmap.entry_points}")
+    print(f"Changed symbols: {[(n.symbol, n.file) for n in flowmap.changed_symbols]}")
+    print(f"Upstream callers: {[(n.symbol, n.file) for n in flowmap.upstream]}")
+    print(f"Downstream callees: {[(n.symbol, n.file) for n in flowmap.downstream]}")
+    print(f"Confidence: {flowmap.confidence}")
+    print(f"Narrative:\n{flowmap.narrative}")
+
+    print("\n" + "="*60)
+    print("STAGE 1 — Specialist Reviewers (parallel)")
+    print("="*60)
     profile = load_codebase_profile(args.repo)
 
     findings = asyncio.run(
@@ -70,7 +91,14 @@ def main() -> None:
             model=MID_MODEL,
         )
     )
+    for f in findings:
+        print(f"  [{f.severity.upper()}] {f.dimension} | {f.file}:{f.line_start}-{f.line_end}")
+        print(f"    Issue: {f.issue}")
+        print(f"    Fix:   {f.suggestion}")
 
+    print("\n" + "="*60)
+    print("STAGE 2 — Final Consolidation")
+    print("="*60)
     rejected = load_rejected_hashes(args.repo)
     report = consolidate(args.repo, args.branch, findings, rejected, changeset.truncated, STRONGEST_MODEL)
 

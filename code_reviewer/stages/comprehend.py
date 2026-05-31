@@ -34,7 +34,9 @@ If no callers are found, treat the symbol itself as the entry point.
 
 Rules:
 - Trace at most 2 hops: direct callers and callees of changed symbols.
-- Read at most 15 files total.
+- Read at most 10 files total.
+- Stop exploring as soon as you have enough for a confident narrative — do not read every file.
+- After your last tool call, immediately return the FlowMap.
 - If you hit any cap, set confidence="low" and return what you have.
 """
 
@@ -55,7 +57,8 @@ def comprehend(repo_path: str, base: str, branch: str, changeset: ChangeSet, mod
         ],
         response_model=FlowMap,
         tools=[read_file, list_directory, find_references, find_definition],
-        max_recursion=10,
+        max_recursion=15,
+        model_capabilities={"function_calling": True, "json_mode": False},
         metadata=trace_meta("comprehend", repo_path, branch),
     )
     return response.content

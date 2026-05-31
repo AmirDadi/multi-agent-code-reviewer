@@ -106,6 +106,7 @@ async def _run(
         response_model=FindingList,
         tools=[read_file, list_directory, git_diff, find_references, find_definition],
         max_recursion=5,
+        model_capabilities={"function_calling": True, "json_mode": False},
         metadata=trace_meta(f"specialist:{dimension}", repo, branch),
     )
     return response.content.findings if response.content else []
