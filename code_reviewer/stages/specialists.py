@@ -18,17 +18,26 @@ _CONVENTIONS = """\
 You are a code conventions reviewer.
 The changed code is pre-loaded in the user message — review it directly.
 
-Step 1 — discover project conventions (one batch call):
-  read_files("pyproject.toml, setup.cfg, .flake8, .eslintrc.json, .prettierrc")
-  Stop after this one call. Extract active rules from whatever was found.
-  If nothing found, infer from the codebase profile or the language's standard style guide.
+Step 1 — read existing sibling files to extract actual project conventions:
+  Use list_directory to find files in the same package/directory as the changed files.
+  Read 1-2 existing source files (not the changed ones) to observe:
+    - Naming style: snake_case vs camelCase for functions, variables, classes
+    - Indentation: 2 spaces vs 4 spaces (count carefully)
+    - Type hints: are function signatures annotated or not?
+    - Docstrings: present or absent? what format (Google, NumPy, plain)?
+    - Import style: one import per line vs combined (import a, b)
+    - File headers: is there a comment at the top of each file?
+  This is the ground truth — config files often don't capture these patterns.
 
-Step 2 — review the pre-loaded diff:
-  Judge against the conventions from Step 1.
-  Check: naming, import ordering, formatting, structural patterns, error handling, clean code.
-  Only flag deviations from established conventions — not personal preferences.
-  Use grep_context(pattern) if you need to see how a pattern is used elsewhere for comparison.
-  Do not read files unrelated to the change.
+Step 2 — check linter/formatter config (one batch call):
+  read_files("pyproject.toml, setup.cfg, .flake8, .eslintrc.json, .prettierrc")
+  Extract any active rules that add to what you found in Step 1.
+
+Step 3 — compare the pre-loaded diff against the conventions from Steps 1-2:
+  For each convention you observed, check if the changed code follows it.
+  Naming, indentation, type hints, docstrings, imports, file headers — check them all.
+  Use grep_context(pattern) to verify a pattern before flagging it as a deviation.
+  Only flag clear deviations — not stylistic preferences absent from the project.
 
 Return a FindingList with dimension="conventions". Return an empty list if nothing stands out.
 """
@@ -58,17 +67,31 @@ _SECURITY = """\
 You are a security reviewer.
 The changed code is pre-loaded in the user message — review it directly.
 
+Mitigation-first rule (critical):
+Before flagging ANY finding, read the surrounding code in the diff carefully and check
+whether a mitigation already exists — sanitization, validation, auth guard, context manager, etc.
+If a mitigation is present and correct, do NOT flag the issue.
+If you are unsure, use grep_context to see the actual lines before deciding.
+
 Look for:
 - Injection: SQL, shell command, path traversal, template injection.
+  For path traversal: check if basename(), resolve(), normpath(), or similar is already applied.
+  os.path.basename() correctly strips traversal sequences — if present, it is a valid mitigation.
 - Hardcoded secrets, credentials, API keys, or tokens.
 - Unsafe function calls (eval, exec, pickle, unsafe deserialisation).
-- Unvalidated input: for each upstream caller in the FlowMap, check whether input is
-  validated before reaching the changed code. Flag the first unguarded use.
+- Unvalidated input: check whether the input is sanitized before use, not just whether
+  a parameter exists. Flag only if validation is absent.
 - Auth gaps: new endpoints or data-access paths not protected by existing auth checks.
-- Sensitive data in logs: passwords, tokens, session IDs, PII, auth headers, full request bodies.
+- Sensitive data in logs: flag only actual secrets/PII — local file paths are LOW at most,
+  not MEDIUM or HIGH.
 
-Use grep_context(pattern, context_lines=20) to inspect how input flows into a suspicious call
-or to check if an auth guard exists nearby — only when the pre-loaded diff is insufficient.
+Severity calibration:
+- HIGH: exploitable with no mitigation present.
+- MEDIUM: real risk but partially mitigated or requires specific conditions.
+- LOW: style/practice issue (missing context manager, missing encoding, etc.).
+A local file path in a print() is LOW, not MEDIUM.
+
+Use grep_context(pattern, context_lines=20) to verify a suspicious pattern before flagging.
 Do not read files unrelated to the security surface of this change.
 
 Return a FindingList with dimension="security". Return an empty list if nothing stands out.
@@ -123,7 +146,7 @@ async def _run(
         ],
         response_model=FindingList,
         tools=[grep_context, read_files, find_references, find_definition, read_file, list_directory],
-        max_recursion=6,
+        max_recursion=8,
         model_capabilities={"function_calling": True, "json_mode": False},
         metadata=trace_meta(f"specialist:{dimension}", repo, branch),
     )
