@@ -81,7 +81,7 @@ def consolidate(
         ],
         response_model=ReviewReport,
         tools=[read_file, list_directory, find_references, find_definition],
-        max_recursion=5,
+        max_recursion=8,
         model_capabilities={"function_calling": True, "json_mode": False},
         metadata=trace_meta("consolidate", repo_path, branch),
     )
