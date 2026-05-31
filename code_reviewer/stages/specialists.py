@@ -19,7 +19,7 @@ You are a code conventions reviewer.
 The changed code is pre-loaded in the user message — review it directly.
 
 Step 1 — discover project conventions (one batch call):
-  read_files(["pyproject.toml", "setup.cfg", ".flake8", ".eslintrc.json", ".prettierrc"])
+  read_files("pyproject.toml, setup.cfg, .flake8, .eslintrc.json, .prettierrc")
   Stop after this one call. Extract active rules from whatever was found.
   If nothing found, infer from the codebase profile or the language's standard style guide.
 
@@ -100,7 +100,7 @@ def _context(
         f"--- End of pre-loaded diff ---\n\n"
         f"Available tools:\n"
         f"- grep_context(pattern, context_lines=20): search with surrounding lines — prefer over read_file\n"
-        f"- read_files(paths): read small config files in one call (max 5)\n"
+        f"- read_files('path1, path2, ...'): read small config files in one call (max 5)\n"
         f"- read_file(path): read a full file only when absolutely necessary\n"
         f"- find_references(symbol) / find_definition(symbol): trace symbol usage\n"
         f"Do not read files not relevant to your review dimension."

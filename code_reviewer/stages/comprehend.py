@@ -22,7 +22,7 @@ Tool use rules:
   symbol or pattern in context. Much cheaper than read_file — prefer it.
 - find_references(symbol): find who calls a changed symbol (blast radius).
 - find_definition(symbol): find what the changed code depends on (downstream risk).
-- read_files(paths): read small config/doc files (max 5 at once).
+- read_files("path1, path2, ..."): read small config/doc files in one call (max 5).
 - read_file(path): only for files not already in the pre-loaded diff context.
 - list_directory(path): explore unfamiliar directory structure.
 - Do NOT read files that are not directly related to understanding the change.

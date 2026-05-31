@@ -112,12 +112,13 @@ def read_file(path: str) -> str:
     return "\n".join(lines)
 
 
-def read_files(paths: list[str]) -> str:
+def read_files(paths_csv: str) -> str:
     """Read multiple small files in one call (max 5 files, 300 combined lines).
 
-    Use this for config/doc files where you need several at once.
+    Pass a comma-separated list of paths, e.g: "pyproject.toml, setup.cfg, .flake8"
     Files not found on disk are fetched from the reviewed branch via git show.
     """
+    paths = [p.strip() for p in paths_csv.split(",") if p.strip()]
     results = []
     total_lines = 0
     for path in paths[:MAX_BATCH_FILES]:
