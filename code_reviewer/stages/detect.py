@@ -6,7 +6,7 @@ from code_reviewer.tools import git_diff, list_changed_files
 
 MAX_FILES = 20
 
-_SYSTEM = "Extract a concise structured summary of this git diff. Be factual and brief."
+_SYSTEM = "Extract a concise structured summary of this git diff. Be factual and brief. It will be used as input for a code reviewing session."
 
 
 def detect_changes(repo_path: str, base: str, branch: str, model: str) -> ChangeSet:

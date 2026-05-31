@@ -7,18 +7,20 @@ from code_reviewer.schemas import ChangeSet, Finding, FindingList, FlowMap
 
 _CONVENTIONS = """\
 You are a code conventions reviewer.
-Review the diff for: naming consistency, import ordering, formatting, and structural patterns.
+Review the diff for: naming consistency, import ordering, formatting, and structural patterns and clean code practices.
 Judge against the codebase profile when available; fall back to general best practices.
 Return a FindingList with dimension="conventions". Return an empty list if nothing stands out.
 """
 
 _DOMAIN = """\
-You are a domain alignment reviewer.
+You are a domain/business alignment code reviewer.
 Given the branch description and the FlowMap narrative, assess:
 - Does the change accomplish what the description states?
 - Are there missing edge cases or incomplete coverage of the stated intent?
 - Is there scope creep beyond what was described?
 - Is the change correctly wired into the execution flow (per FlowMap)?
+- Are the changes backward compatible?
+- If no description is provided, infer the intent from the change summary and FlowMap narrative.
 Return a FindingList with dimension="domain".
 """
 
