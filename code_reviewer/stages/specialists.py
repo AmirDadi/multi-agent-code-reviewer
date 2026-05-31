@@ -139,11 +139,13 @@ async def run_specialists(
     flowmap: FlowMap,
     profile: dict,
     model: str,
+    security_model: str | None = None,
 ) -> list[Finding]:
     user = _context(changeset, flowmap, profile, description, base, branch)
+    sec_model = security_model or model
     results = await asyncio.gather(
         _run(_CONVENTIONS, user, model, "conventions", repo_path, branch),
         _run(_DOMAIN, user, model, "domain", repo_path, branch),
-        _run(_SECURITY, user, model, "security", repo_path, branch),
+        _run(_SECURITY, user, sec_model, "security", repo_path, branch),
     )
     return [finding for batch in results for finding in batch]

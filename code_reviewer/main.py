@@ -3,7 +3,7 @@ import asyncio
 from pathlib import Path
 
 import code_reviewer.tools as tool_module
-from code_reviewer.config import FAST_MODEL, MID_MODEL, STRONG_MODEL, STRONGEST_MODEL
+from code_reviewer.config import FAST_MODEL, MID_MODEL, SECURITY_MODEL, STRONG_MODEL, STRONGEST_MODEL
 from code_reviewer.memory import load_codebase_profile, load_rejected_hashes
 from code_reviewer.observability import setup_langfuse
 from code_reviewer.schemas import ReviewReport
@@ -89,6 +89,7 @@ def main() -> None:
             flowmap=flowmap,
             profile=profile,
             model=MID_MODEL,
+            security_model=SECURITY_MODEL,
         )
     )
     for f in findings:
