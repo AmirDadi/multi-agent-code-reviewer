@@ -8,6 +8,10 @@ _GREP = shutil.which("grep") or "grep"
 MAX_FILE_LINES = 500
 MAX_DIFF_KB = 100
 MAX_GREP_RESULTS = 50
+MAX_GREP_CONTEXT_LINES = 30  # hard cap on context_lines arg
+MAX_GREP_OUTPUT_LINES = 150  # hard cap on grep_context total output
+MAX_BATCH_FILES = 5
+MAX_BATCH_COMBINED_LINES = 300
 
 _repo_root: Path | None = None
 _branch: str | None = None
@@ -41,10 +45,31 @@ def _symbol_variants(symbol: str) -> set[str]:
     return {symbol, snake, camel, pascal}
 
 
-def git_diff(base: str = "main", branch: str = "HEAD") -> str:
-    """Return unified diff between base and branch, capped at MAX_DIFF_KB."""
+def _read_text(path: str) -> str | None:
+    """Read text from filesystem or the reviewed branch, returning None if not found."""
+    full_path = _safe_path(path)
+    if full_path.exists():
+        return full_path.read_text(errors="replace")
+    if _branch:
+        result = subprocess.run(
+            ["git", "show", f"{_branch}:{path}"],
+            cwd=str(_repo_root),
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode == 0:
+            return result.stdout
+    return None
+
+
+def git_diff(base: str = "main", branch: str = "HEAD", context_lines: int = 3) -> str:
+    """Return unified diff between base and branch, capped at MAX_DIFF_KB.
+
+    context_lines controls how many surrounding lines are shown per hunk (default 3).
+    Use context_lines=30 to pre-load ±30 lines of context around each change.
+    """
     result = subprocess.run(
-        ["git", "diff", f"{base}...{branch}"],
+        ["git", "diff", f"-U{context_lines}", f"{base}...{branch}"],
         cwd=str(_repo_root),
         capture_output=True,
         text=True,
@@ -68,35 +93,72 @@ def list_changed_files(base: str = "main", branch: str = "HEAD") -> list[str]:
 
 
 def read_file(path: str) -> str:
-    """Read a file within the repo root, capped at MAX_FILE_LINES lines.
+    """Read a single file within the repo root, capped at MAX_FILE_LINES lines.
 
-    If the file does not exist on the current checkout (e.g. it lives only on
-    the branch being reviewed), falls back to `git show <branch>:<path>`.
+    Falls back to git show <branch>:<path> when the file only exists on the
+    reviewed branch and not the current checkout.
+    Prefer grep_context() when you only need a specific section of a file.
     """
     full_path = _safe_path(path)
     if full_path.is_dir():
         return f"'{path}' is a directory. Use list_directory('{path}') to see its contents."
-
-    if full_path.exists():
-        text = full_path.read_text(errors="replace")
-    elif _branch:
-        result = subprocess.run(
-            ["git", "show", f"{_branch}:{path}"],
-            cwd=str(_repo_root),
-            capture_output=True,
-            text=True,
-        )
-        if result.returncode != 0:
-            return f"File not found: {path}"
-        text = result.stdout
-    else:
+    text = _read_text(path)
+    if text is None:
         return f"File not found: {path}"
-
     lines = text.splitlines()
     if len(lines) > MAX_FILE_LINES:
         lines = lines[:MAX_FILE_LINES]
         lines.append(f"[truncated at {MAX_FILE_LINES} lines]")
     return "\n".join(lines)
+
+
+def read_files(paths: list[str]) -> str:
+    """Read multiple small files in one call (max 5 files, 300 combined lines).
+
+    Use this for config/doc files where you need several at once.
+    Files not found on disk are fetched from the reviewed branch via git show.
+    """
+    results = []
+    total_lines = 0
+    for path in paths[:MAX_BATCH_FILES]:
+        try:
+            full_path = _safe_path(path)
+            if full_path.is_dir():
+                results.append(f"=== {path} ===\n(directory)")
+                continue
+            text = _read_text(path)
+            if text is None:
+                results.append(f"=== {path} ===\n(not found)")
+                continue
+            available = MAX_BATCH_COMBINED_LINES - total_lines
+            if available <= 0:
+                results.append(f"=== {path} ===\n[skipped — combined line cap reached]")
+                continue
+            lines = text.splitlines()[:available]
+            total_lines += len(lines)
+            results.append(f"=== {path} ===\n" + "\n".join(lines))
+        except PermissionError:
+            results.append(f"=== {path} ===\n(access denied)")
+    return "\n\n".join(results) if results else "No files read."
+
+
+def grep_context(pattern: str, context_lines: int = 20) -> str:
+    """Search for a pattern and return matches with ±context_lines of surrounding code.
+
+    Use this instead of read_file when you only need the area around a specific
+    symbol, function, or pattern — avoids loading an entire file into context.
+    context_lines is capped at 30.
+    """
+    context_lines = min(context_lines, MAX_GREP_CONTEXT_LINES)
+    result = subprocess.run(
+        [_GREP, "-r", "-n", "-E",
+         f"-A{context_lines}", f"-B{context_lines}",
+         pattern, str(_repo_root)],
+        capture_output=True,
+        text=True,
+    )
+    lines = result.stdout.splitlines()[:MAX_GREP_OUTPUT_LINES]
+    return "\n".join(lines) if lines else "No matches found."
 
 
 def list_directory(path: str = ".") -> str:
