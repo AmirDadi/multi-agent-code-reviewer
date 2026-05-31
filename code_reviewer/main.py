@@ -61,6 +61,7 @@ def main() -> None:
     findings = asyncio.run(
         run_specialists(
             repo_path=args.repo,
+            base=args.base,
             branch=args.branch,
             description=args.description,
             changeset=changeset,

@@ -108,6 +108,7 @@ async def test_run_specialists_aggregates_findings(fixture_repo):
         from code_reviewer.stages.specialists import run_specialists
         findings = await run_specialists(
             repo_path=fixture_repo,
+            base="main",
             branch="test-branch",
             description="stub",
             changeset=changeset,
