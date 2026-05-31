@@ -1,6 +1,9 @@
 import re
+import shutil
 import subprocess
 from pathlib import Path
+
+_GREP = shutil.which("grep") or "grep"
 
 MAX_FILE_LINES = 500
 MAX_DIFF_KB = 100
@@ -73,7 +76,7 @@ def find_references(symbol: str) -> str:
     variants = _symbol_variants(symbol)
     pattern = "|".join(re.escape(v) for v in variants if v)
     result = subprocess.run(
-        ["/usr/bin/grep", "-r", "-n", "-E", pattern, str(_repo_root)],
+        [_GREP, "-r", "-n", "-E", pattern, str(_repo_root)],
         capture_output=True,
         text=True,
     )
@@ -87,7 +90,7 @@ def find_definition(symbol: str) -> str:
     sym_pattern = "|".join(re.escape(v) for v in variants if v)
     pattern = rf"(def|class|const|function|=)\s+({sym_pattern})|({sym_pattern})\s*[=:(]"
     result = subprocess.run(
-        ["/usr/bin/grep", "-r", "-n", "-E", pattern, str(_repo_root)],
+        [_GREP, "-r", "-n", "-E", pattern, str(_repo_root)],
         capture_output=True,
         text=True,
     )
