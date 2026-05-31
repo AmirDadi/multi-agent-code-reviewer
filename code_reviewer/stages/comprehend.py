@@ -13,7 +13,6 @@ Rules:
 - Trace at most 2 hops: direct callers and callees of changed symbols.
 - Read at most 15 files total.
 - If you hit any cap, set confidence="low" and return what you have.
-- Never write or modify files.
 """
 
 
