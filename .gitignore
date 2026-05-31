@@ -11,3 +11,5 @@ codebase_profile.json
 feedback_log.jsonl
 report.md
 .DS_Store
+*.pdf
+.idea/
